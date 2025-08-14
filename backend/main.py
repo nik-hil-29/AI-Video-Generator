@@ -94,27 +94,61 @@ os.makedirs("static/generated_videos", exist_ok=True)
 # Mount static files for generated videos
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Mount React build files (if they exist)
+# Mount React build files (if they exist) - Check directories first
 if os.path.exists("frontend_build"):
-    app.mount("/assets", StaticFiles(directory="frontend_build/assets"), name="assets")
-    app.mount("/static", StaticFiles(directory="frontend_build/static"), name="frontend_static")
+    logger.info("Frontend build directory found")
+    
+    # Mount React static files (only if they exist)
+    react_static_dir = "frontend_build/static"
+    if os.path.exists(react_static_dir):
+        app.mount("/static-react", StaticFiles(directory=react_static_dir), name="frontend_static")
+        logger.info(f"Mounted React static files from {react_static_dir}")
+    
+    # Mount React assets (only if they exist)
+    react_assets_dir = "frontend_build/assets"  
+    if os.path.exists(react_assets_dir):
+        app.mount("/assets", StaticFiles(directory=react_assets_dir), name="assets")
+        logger.info(f"Mounted React assets from {react_assets_dir}")
+    
+    # List what's actually in the frontend_build directory
+    try:
+        build_contents = os.listdir("frontend_build")
+        logger.info(f"Frontend build contents: {build_contents}")
+    except Exception as e:
+        logger.error(f"Could not list frontend_build contents: {e}")
     
     # Serve React app for all non-API routes
     @app.get("/{path:path}")
     async def serve_react_app(request: Request, path: str):
         """Serve React app for all non-API routes"""
-        # Don't serve React for API routes
-        if path.startswith("api/"):
-            raise HTTPException(status_code=404, detail="API endpoint not found")
+        # Don't serve React for API routes or static files
+        if path.startswith("api/") or path.startswith("static"):
+            raise HTTPException(status_code=404, detail="Not found")
+        
+        # Check if it's a static file request
+        if "." in path.split("/")[-1]:
+            # Try to serve from frontend_build directly
+            file_path = os.path.join("frontend_build", path)
+            if os.path.exists(file_path):
+                return FileResponse(file_path)
         
         # Serve index.html for all other routes (React Router handles routing)
-        return FileResponse("frontend_build/index.html")
+        index_path = "frontend_build/index.html"
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+        else:
+            raise HTTPException(status_code=404, detail="Frontend not found")
     
     @app.get("/")
     async def serve_react_root():
         """Serve React app root"""
-        return FileResponse("frontend_build/index.html")
+        index_path = "frontend_build/index.html"
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+        else:
+            return {"message": "Frontend build found but index.html missing"}
 else:
+    logger.warning("Frontend build directory not found")
     @app.get("/")
     async def root():
         return {
