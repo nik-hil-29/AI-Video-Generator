@@ -1,0 +1,22 @@
+{
+    "builds": [
+      {
+        "src": "main.py",
+        "use": "@vercel/python"
+      }
+    ],
+    "routes": [
+      {
+        "src": "/(.*)",
+        "dest": "main.py"
+      }
+    ],
+    "env": {
+      "HF_TOKEN": "@hf_token"
+    },
+    "functions": {
+      "main.py": {
+        "maxDuration": 300
+      }
+    }
+  }
