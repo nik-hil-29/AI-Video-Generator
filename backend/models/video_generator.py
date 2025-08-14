@@ -108,7 +108,8 @@ class VideoGenerator:
                         import shutil
                         shutil.copy(str(video_result), video_path)
                 
-                video_url = f"/static/generated_videos/{video_filename}"
+                # FIXED: Use the correct static path that matches our main.py mounting
+                video_url = f"/video-static/generated_videos/{video_filename}"
                 
                 # Update task status
                 self.generation_tasks[task_id].update({
@@ -162,8 +163,8 @@ class VideoGenerator:
         # Simulate processing time
         await asyncio.sleep(3)
         
-        # Create a mock video URL (you can replace with a sample video)
-        mock_video_url = "/Users/nikhilkushwaha/ai-video-app/Try Again GIF by Jack Link's Jerky.gif"
+        # Create a mock video URL that points to a placeholder
+        mock_video_url = "/video-static/generated_videos/mock_video.mp4"
         
         self.generation_tasks[task_id] = {
             "status": "completed",
