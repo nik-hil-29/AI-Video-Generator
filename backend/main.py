@@ -27,7 +27,7 @@ video_generator = VideoGenerator()
 
 class VideoRequest(BaseModel):
     prompt: str
-    duration: int = 5
+    duration: int = 5  # Default to 5 seconds (Wan-AI model limitation)
 
 class VideoResponse(BaseModel):
     status: str
