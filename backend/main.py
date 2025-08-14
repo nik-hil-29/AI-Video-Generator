@@ -91,41 +91,54 @@ async def get_video_status(task_id: str):
 # Create static directories
 os.makedirs("static/generated_videos", exist_ok=True)
 
-# Mount static files for generated videos
+# Mount static files for generated videos FIRST (highest priority)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Mount React build files (if they exist) - Check directories first
+# Mount React build files (if they exist)
 if os.path.exists("frontend_build"):
     logger.info("Frontend build directory found")
     
-    # Mount React static files (only if they exist)
-    react_static_dir = "frontend_build/static"
-    if os.path.exists(react_static_dir):
-        app.mount("/static-react", StaticFiles(directory=react_static_dir), name="frontend_static")
-        logger.info(f"Mounted React static files from {react_static_dir}")
-    
-    # Mount React assets (only if they exist)
-    react_assets_dir = "frontend_build/assets"  
-    if os.path.exists(react_assets_dir):
-        app.mount("/assets", StaticFiles(directory=react_assets_dir), name="assets")
-        logger.info(f"Mounted React assets from {react_assets_dir}")
-    
-    # List what's actually in the frontend_build directory
+    # Check what's in the build directory
     try:
         build_contents = os.listdir("frontend_build")
         logger.info(f"Frontend build contents: {build_contents}")
     except Exception as e:
         logger.error(f"Could not list frontend_build contents: {e}")
     
+    # Mount React static files at the root static paths that React expects
+    react_static_dir = "frontend_build/static"
+    if os.path.exists(react_static_dir):
+        # Mount CSS files
+        css_dir = os.path.join(react_static_dir, "css")
+        if os.path.exists(css_dir):
+            app.mount("/css", StaticFiles(directory=css_dir), name="react_css")
+            logger.info(f"Mounted React CSS files from {css_dir}")
+        
+        # Mount JS files  
+        js_dir = os.path.join(react_static_dir, "js")
+        if os.path.exists(js_dir):
+            app.mount("/js", StaticFiles(directory=js_dir), name="react_js")
+            logger.info(f"Mounted React JS files from {js_dir}")
+        
+        # Mount any other static assets
+        media_dir = os.path.join(react_static_dir, "media")
+        if os.path.exists(media_dir):
+            app.mount("/media", StaticFiles(directory=media_dir), name="react_media")
+            logger.info(f"Mounted React media files from {media_dir}")
+    
     # Serve React app for all non-API routes
     @app.get("/{path:path}")
     async def serve_react_app(request: Request, path: str):
         """Serve React app for all non-API routes"""
-        # Don't serve React for API routes or static files
-        if path.startswith("api/") or path.startswith("static"):
+        # Don't serve React for API routes, static files, or generated videos
+        if (path.startswith("api/") or 
+            path.startswith("static/") or 
+            path.startswith("css/") or 
+            path.startswith("js/") or 
+            path.startswith("media/")):
             raise HTTPException(status_code=404, detail="Not found")
         
-        # Check if it's a static file request
+        # Check if it's a static file request (has extension)
         if "." in path.split("/")[-1]:
             # Try to serve from frontend_build directly
             file_path = os.path.join("frontend_build", path)
