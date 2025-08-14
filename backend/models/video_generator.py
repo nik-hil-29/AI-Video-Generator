@@ -41,7 +41,7 @@ class VideoGenerator:
         
         logger.info("VideoGenerator initialized")
     
-    async def generate_video(self, prompt: str, duration: int = 5) -> Dict[str, Any]:
+    async def generate_video(self, prompt: str, duration: int ) -> Dict[str, Any]:
         """
         Generate video using Hugging Face Inference API
         """
