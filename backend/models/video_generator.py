@@ -72,11 +72,24 @@ class VideoGenerator:
             # Generate video using Hugging Face client
             # Run in thread pool to avoid blocking
             loop = asyncio.get_event_loop()
+            
+            # Calculate frames based on duration (assuming ~24fps)
+            # Most video models use 24fps, so for X seconds: X * 24 frames
+            num_frames = duration * 24
+            
+            # Ensure reasonable frame count (most models have limits)
+            num_frames = max(24, min(num_frames, 240))  # 1-10 seconds range
+            
+            logger.info(f"Generating video with {num_frames} frames for {duration} seconds")
+            
             video_result = await loop.run_in_executor(
                 None, 
                 lambda: self.client.text_to_video(
                     prompt,
                     model=self.model_name,
+                    num_frames=num_frames,  # Use frames instead of duration
+                    num_inference_steps=25,  # Good quality vs speed balance
+                    guidance_scale=7.5,     # Standard guidance scale
                 )
             )
             
@@ -148,9 +161,14 @@ class VideoGenerator:
                     "error": str(e)
                 })
             
+            # Check if it's a model limitation issue
+            error_message = str(e)
+            if "num_frames" in error_message.lower() or "duration" in error_message.lower():
+                error_message = f"Model limitation: The Wan-AI model may only support 5-second videos. Original error: {str(e)}"
+            
             return {
                 "status": "error",
-                "message": f"Hugging Face API error: {str(e)}",
+                "message": f"Hugging Face API error: {error_message}",
                 "task_id": task_id
             }
     
