@@ -10,8 +10,8 @@ const VideoGenerator = () => {
   const [taskId, setTaskId] = useState('');
   const [error, setError] = useState('');
 
-  // API base URL
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+  // API base URL - use relative paths for full-stack deployment
+  const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 
   const handleGenerateVideo = async () => {
     // Validation
@@ -31,7 +31,7 @@ const VideoGenerator = () => {
     setStatus('Generating video...');
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/generate-video`, {
+      const response = await axios.post(`${API_BASE_URL}/api/generate-video`, {
         prompt: prompt.trim(),
         duration: parseInt(duration)
       }, {
@@ -77,7 +77,7 @@ const VideoGenerator = () => {
 
     const poll = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/video-status/${taskId}`);
+        const response = await axios.get(`${API_BASE_URL}/api/video-status/${taskId}`);
         const data = response.data;
 
         if (data.status === 'success') {
@@ -87,10 +87,10 @@ const VideoGenerator = () => {
         } else if (data.status === 'processing') {
           pollCount++;
           if (pollCount < maxPolls) {
-            setStatus(`Video generation in progress... (${pollCount}/${maxPolls})`);
+            setStatus(`Video generation in progress... (${pollCount}/${maxPolls}) - Wan-AI model processing`);
             setTimeout(poll, 10000); // Poll every 10 seconds
           } else {
-            setError('Video generation is taking longer than expected. Please try again.');
+            setError('Video generation is taking longer than expected. The Hugging Face model might be busy, please try again.');
             setStatus('');
             setIsGenerating(false);
           }
@@ -261,12 +261,14 @@ const VideoGenerator = () => {
 
         {/* Help Section */}
         <div style={{ marginTop: '2rem', padding: '1rem', background: '#f8f9fa', borderRadius: '8px' }}>
-          <h4 style={{ margin: '0 0 1rem 0', color: '#333' }}>💡 Tips for better videos:</h4>
+          <h4 style={{ margin: '0 0 1rem 0', color: '#333' }}>💡 Tips for better videos with Wan-AI:</h4>
           <ul style={{ textAlign: 'left', color: '#666', margin: 0 }}>
             <li>Be descriptive and specific in your prompts</li>
             <li>Include details about lighting, movement, and style</li>
             <li>Try phrases like "cinematic", "slow motion", or "aerial view"</li>
-            <li>Shorter videos (3-5 seconds) generate faster</li>
+            <li>Describe the scene composition and camera angles</li>
+            <li>Shorter videos (3-5 seconds) generate faster and more reliably</li>
+            <li>The Wan-AI model excels at creative and artistic video generation</li>
           </ul>
         </div>
       </div>
