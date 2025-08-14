@@ -1,10 +1,9 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
-import json
 from models.video_generator import VideoGenerator
 import logging
 
@@ -14,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="AI Video Generation Full-Stack App", version="1.0.0")
 
-# CORS middleware - allowing all origins since we're serving everything from same domain
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -36,14 +35,11 @@ class VideoResponse(BaseModel):
     task_id: str = None
     message: str = None
 
-# Debug function to understand build structure
+# Debug build structure
 def debug_build_structure():
     logger.info("🔍 DEBUGGING BUILD STRUCTURE")
     
     if os.path.exists("frontend_build"):
-        logger.info("✅ frontend_build directory found")
-        
-        # List directory structure
         for root, dirs, files in os.walk("frontend_build"):
             level = root.replace("frontend_build", "").count(os.sep)
             indent = "  " * level
@@ -52,19 +48,14 @@ def debug_build_structure():
             for file in files:
                 logger.info(f"{subindent}{file}")
         
-        # Check what's in index.html
+        # Check index.html content
         index_path = "frontend_build/index.html"
         if os.path.exists(index_path):
             with open(index_path, 'r') as f:
                 content = f.read()
-                # Look for CSS and JS references
-                lines = content.split('\n')
                 logger.info("🔍 CSS/JS REFERENCES IN INDEX.HTML:")
-                for line in lines:
-                    if ('href=' in line and '.css' in line) or ('src=' in line and '.js' in line):
-                        logger.info(f"  {line.strip()}")
+                logger.info(content)
 
-# Run debug on startup
 debug_build_structure()
 
 # API Routes
@@ -78,15 +69,12 @@ async def api_root():
 
 @app.post("/api/generate-video", response_model=VideoResponse)
 async def generate_video(request: VideoRequest):
-    """Generate a video based on the provided prompt"""
     try:
         logger.info(f"Received video generation request: {request.prompt}")
         
-        # Validate prompt
         if not request.prompt or len(request.prompt.strip()) < 3:
             raise HTTPException(status_code=400, detail="Prompt must be at least 3 characters long")
         
-        # Generate video using the video generator
         result = await video_generator.generate_video(
             prompt=request.prompt,
             duration=request.duration
@@ -112,7 +100,6 @@ async def generate_video(request: VideoRequest):
 
 @app.get("/api/video-status/{task_id}")
 async def get_video_status(task_id: str):
-    """Check the status of a video generation task"""
     try:
         result = await video_generator.get_generation_status(task_id)
         return result
@@ -123,45 +110,21 @@ async def get_video_status(task_id: str):
 # Create static directories
 os.makedirs("static/generated_videos", exist_ok=True)
 
-# Mount static files for generated videos FIRST (highest priority)
-app.mount("/static", StaticFiles(directory="static"), name="video_static")
+# FIXED: Mount video static files at a different path to avoid conflicts
+app.mount("/video-static", StaticFiles(directory="static"), name="video_static")
 
-# Mount React build files (if they exist)
+# Mount React build files correctly
 if os.path.exists("frontend_build"):
     logger.info("Frontend build directory found")
     
-    # Method 1: Mount the entire static directory from React build
+    # FIXED: Mount React static directory at /static to match HTML expectations
     react_static_dir = "frontend_build/static"
     if os.path.exists(react_static_dir):
-        logger.info(f"Mounting React static directory: {react_static_dir}")
-        
-        # Mount individual subdirectories to avoid conflicts
-        css_dir = os.path.join(react_static_dir, "css")
-        js_dir = os.path.join(react_static_dir, "js")
-        media_dir = os.path.join(react_static_dir, "media")
-        
-        if os.path.exists(css_dir):
-            app.mount("/css", StaticFiles(directory=css_dir), name="react_css")
-            logger.info("✅ Mounted /css")
-        
-        if os.path.exists(js_dir):
-            app.mount("/js", StaticFiles(directory=js_dir), name="react_js")
-            logger.info("✅ Mounted /js")
-            
-        if os.path.exists(media_dir):
-            app.mount("/media", StaticFiles(directory=media_dir), name="react_media")
-            logger.info("✅ Mounted /media")
+        # This is the key fix - mount at /static to match HTML requests
+        app.mount("/static", StaticFiles(directory=react_static_dir), name="react_static")
+        logger.info(f"✅ Mounted React static files at /static from {react_static_dir}")
     
-    # Method 2: Also mount at /static path in case React expects that
-    if os.path.exists(react_static_dir):
-        try:
-            # Mount as /react-static to avoid conflicts with our video static
-            app.mount("/react-static", StaticFiles(directory=react_static_dir), name="react_static_alt")
-            logger.info("✅ Also mounted React static at /react-static")
-        except Exception as e:
-            logger.warning(f"Could not mount /react-static: {e}")
-    
-    # Serve any file directly from frontend_build if it exists
+    # Serve other React files
     @app.get("/favicon.ico")
     async def favicon():
         favicon_path = "frontend_build/favicon.ico"
@@ -183,27 +146,15 @@ if os.path.exists("frontend_build"):
             return FileResponse(manifest_path)
         raise HTTPException(status_code=404)
     
-    # Catch-all for any other static files
-    @app.get("/{filename}")
-    async def serve_static_file(filename: str):
-        """Serve any static file from frontend_build"""
-        if "." in filename and not filename.startswith("api"):
-            file_path = os.path.join("frontend_build", filename)
-            if os.path.exists(file_path):
-                return FileResponse(file_path)
-        raise HTTPException(status_code=404)
-    
     # Serve React app for all other routes
     @app.get("/{path:path}")
     async def serve_react_app(path: str):
         """Serve React app for all non-API routes"""
-        # Skip API routes and known static paths
+        # Skip API routes and static files
         if (path.startswith("api/") or 
             path.startswith("static/") or 
-            path.startswith("css/") or 
-            path.startswith("js/") or 
-            path.startswith("media/") or
-            "." in path.split("/")[-1]):  # Skip files with extensions
+            path.startswith("video-static/") or
+            ("." in path.split("/")[-1] and not path.endswith('.html'))):
             raise HTTPException(status_code=404)
         
         # Serve index.html for React Router
@@ -223,6 +174,8 @@ if os.path.exists("frontend_build"):
             return {"message": "Frontend build found but index.html missing"}
 else:
     logger.warning("Frontend build directory not found")
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+    
     @app.get("/")
     async def root():
         return {
