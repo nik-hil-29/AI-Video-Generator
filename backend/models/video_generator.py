@@ -41,11 +41,15 @@ class VideoGenerator:
         
         logger.info("VideoGenerator initialized")
     
-    async def generate_video(self, prompt: str, duration: int ) -> Dict[str, Any]:
+    async def generate_video(self, prompt: str, duration: int = 5) -> Dict[str, Any]:
         """
         Generate video using Hugging Face Inference API
+        Note: Wan-AI model is fixed at 5 seconds regardless of duration parameter
         """
         task_id = str(uuid.uuid4())
+        
+        # Force duration to 5 seconds for Wan-AI model
+        duration = 5
         
         # Use Hugging Face client or fallback to mock
         if self.client and self.hf_token:
@@ -73,14 +77,11 @@ class VideoGenerator:
             # Run in thread pool to avoid blocking
             loop = asyncio.get_event_loop()
             
-            # Calculate frames based on duration (assuming ~24fps)
-            # Most video models use 24fps, so for X seconds: X * 24 frames
-            num_frames = duration * 24
+            # Calculate frames based on duration (fixed at 5 seconds for Wan-AI)
+            # Most video models use 24fps, so for 5 seconds: 5 * 24 = 120 frames
+            num_frames = 120  # Fixed for Wan-AI model
             
-            # Ensure reasonable frame count (most models have limits)
-            num_frames = max(24, min(num_frames, 240))  # 1-10 seconds range
-            
-            logger.info(f"Generating video with {num_frames} frames for {duration} seconds")
+            logger.info(f"Generating 5-second video with {num_frames} frames using Wan-AI model")
             
             video_result = await loop.run_in_executor(
                 None, 
