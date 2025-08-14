@@ -7,8 +7,8 @@ WORKDIR /app/frontend
 # Copy frontend package files
 COPY frontend/package*.json ./
 
-# Install frontend dependencies
-RUN npm ci --only=production
+# Install frontend dependencies (fix npm ci issues)
+RUN npm ci --omit=dev || npm install --omit=dev || npm install
 
 # Copy frontend source code
 COPY frontend/ .
@@ -25,6 +25,7 @@ WORKDIR /app
 # Install system dependencies for potential ML libraries
 RUN apt-get update && apt-get install -y \
     curl \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Python requirements
