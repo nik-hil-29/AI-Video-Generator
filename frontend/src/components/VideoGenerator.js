@@ -3,12 +3,14 @@ import axios from 'axios';
 
 const VideoGenerator = () => {
   const [prompt, setPrompt] = useState('');
-  const [duration, setDuration] = useState(5);
   const [isGenerating, setIsGenerating] = useState(false);
   const [status, setStatus] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
   const [taskId, setTaskId] = useState('');
   const [error, setError] = useState('');
+  
+  // Fixed duration - Wan-AI model only supports 5-second videos
+  const duration = 5;
 
   // API base URL - use relative paths for full-stack deployment
   const API_BASE_URL = process.env.REACT_APP_API_URL || '';
@@ -33,7 +35,7 @@ const VideoGenerator = () => {
     try {
       const response = await axios.post(`${API_BASE_URL}/api/generate-video`, {
         prompt: prompt.trim(),
-        duration: parseInt(duration)
+        duration: duration  // Fixed at 5 seconds
       }, {
         timeout: 120000 // 2 minute timeout
       });
@@ -123,7 +125,6 @@ const VideoGenerator = () => {
 
   const resetForm = () => {
     setPrompt('');
-    setDuration(5);
     setVideoUrl('');
     setStatus('');
     setError('');
@@ -151,9 +152,9 @@ const VideoGenerator = () => {
           <strong>📋 Model Information:</strong>
           <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.2rem' }}>
             <li>Using Wan-AI/Wan2.2-T2V-A14B model</li>
-            <li><strong>Note:</strong> This model is optimized for 5-second videos</li>
-            <li>Duration setting may have limited effect due to model architecture</li>
-            <li>For longer videos, consider using multiple generations and editing them together</li>
+            <li><strong>Video Length:</strong> All videos are 5 seconds (model design)</li>
+            <li>High-quality 720P video generation with 24fps</li>
+            <li>For longer videos, consider generating multiple clips and editing them together</li>
           </ul>
         </div>
 
@@ -171,24 +172,7 @@ const VideoGenerator = () => {
               maxLength={500}
             />
             <small style={{ color: '#666', fontSize: '0.8rem' }}>
-              {prompt.length}/500 characters
-            </small>
-          </div>
-
-          <div className="input-group">
-            <label htmlFor="duration">Duration (seconds)</label>
-            <input
-              id="duration"
-              type="number"
-              className="duration-input"
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              min="3"
-              max="10"
-              disabled={isGenerating}
-            />
-            <small style={{ color: '#666', fontSize: '0.8rem', marginLeft: '0.5rem' }}>
-              3-10 seconds (model may default to 5s)
+              {prompt.length}/500 characters • Video will be 5 seconds long
             </small>
           </div>
 
@@ -226,8 +210,8 @@ const VideoGenerator = () => {
                 <strong>❌ Error:</strong> {error}
                 {error.includes('Model limitation') && (
                   <div style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>
-                    💡 <strong>Tip:</strong> The Wan-AI model is specifically designed for 5-second videos. 
-                    Try adjusting your prompt for better results within this timeframe.
+                    💡 <strong>Tip:</strong> The Wan-AI model generates 5-second videos. 
+                    Try adjusting your prompt for better results.
                   </div>
                 )}
               </div>
@@ -268,7 +252,7 @@ const VideoGenerator = () => {
             <div className="video-info">
               <h3>🎉 Video Generated Successfully!</h3>
               <p><strong>Prompt:</strong> {prompt}</p>
-              <p><strong>Requested Duration:</strong> {duration} seconds</p>
+              <p><strong>Duration:</strong> 5 seconds (720P @ 24fps)</p>
               <p><strong>Generated at:</strong> {new Date().toLocaleString()}</p>
               
               {videoUrl.startsWith('http') && (
@@ -285,15 +269,15 @@ const VideoGenerator = () => {
 
         {/* Help Section */}
         <div style={{ marginTop: '2rem', padding: '1rem', background: '#f8f9fa', borderRadius: '8px' }}>
-          <h4 style={{ margin: '0 0 1rem 0', color: '#333' }}>💡 Tips for better videos with Wan-AI:</h4>
+          <h4 style={{ margin: '0 0 1rem 0', color: '#333' }}>💡 Tips for better 5-second videos with Wan-AI:</h4>
           <ul style={{ textAlign: 'left', color: '#666', margin: 0 }}>
             <li>Be descriptive and specific in your prompts</li>
             <li>Include details about lighting, movement, and style</li>
             <li>Try phrases like "cinematic", "slow motion", or "aerial view"</li>
             <li>Describe the scene composition and camera angles</li>
-            <li><strong>The model is optimized for 5-second videos</strong></li>
-            <li>For longer content, consider generating multiple 5s clips</li>
+            <li>Focus on a single action or moment for best results</li>
             <li>The Wan-AI model excels at creative and artistic video generation</li>
+            <li>Consider what can happen effectively in 5 seconds</li>
           </ul>
         </div>
 
