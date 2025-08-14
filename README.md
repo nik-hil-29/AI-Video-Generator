@@ -202,13 +202,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Wan-AI Team** for the incredible Wan2.2-T2V-A14B model
 - **Hugging Face** for the inference infrastructure
 - **Render** for the hosting platform
-- **OpenAI** for inspiration in AI applications
 
-## 📞 Support
-
-- **Issues**: Report bugs or request features via [GitHub Issues](https://github.com/your-username/ai-video-generator/issues)
-- **Discussions**: Join conversations in [GitHub Discussions](https://github.com/your-username/ai-video-generator/discussions)
-- **Email**: contact@your-domain.com
 
 ## 📊 Project Stats
 
